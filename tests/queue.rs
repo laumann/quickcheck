@@ -84,9 +84,9 @@ mod test {
         assert_eq!(2u, q.get());
     }
     
-    impl Arbitrary for Queue<uint> {
-        fn arbitrary<G: Gen>(g: &mut G) -> Queue<uint> {
-            Queue::new(g.size())
+    impl<T: Send + Clone + 'static> Arbitrary for Queue<T> {
+        fn arbitrary<G: Gen>(g: &mut G) -> Queue<T> {
+            Queue::<T>::new(g.size())
         }
     }
 
