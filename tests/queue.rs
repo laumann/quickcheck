@@ -104,4 +104,15 @@ mod test {
             TestResult::from_bool(Queue::<uint>::new(sz).size() == 0)
         }
     }
+
+    enum Action {
+        Put,
+        Get,
+        Size
+    }
+
+    struct QueueConfig<T> {
+        q: Queue<T>,
+        actions: Vec<Action>
+    }
 }
