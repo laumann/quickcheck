@@ -161,7 +161,7 @@ mod test {
     }
 
     #[quickcheck]
-    fn prop_queue_actions(mut qtc: QueueTestConfig<uint>) -> bool {
+    fn prop_queue_actions(mut qtc: QueueTestConfig<uint>) -> TestResult {
         let mut size = 0;
         for &act in qtc.actions.iter() {
             match act {
@@ -174,10 +174,10 @@ mod test {
                     size -= 1;
                 },
                 Size => if qtc.q.size() != size {
-                    return false
+                    return TestResult::error(format!("Expected '{}', but got '{}'", size, qtc.q.size()).as_slice())
                 }
             }
         }
-        true
+        TestResult::passed()
     }
 }
