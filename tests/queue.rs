@@ -4,10 +4,14 @@
  *  - http://www.quviq.com/demos/
  *  - http://doc.rust-lang.org/src/collections/home/rustbuild/src/rust-buildbot/slave/nightly-linux/build/src/libcollections/vec.rs.html#105-109
  */
+#![feature(phase)]
 
 extern crate alloc;
 extern crate core;
 extern crate quickcheck;
+
+#[phase(plugin)]
+extern crate quickcheck_macros;
 
 use alloc::heap::{allocate};
 use core::mem;
@@ -55,8 +59,6 @@ impl<T> Queue<T> {
 
 #[cfg(test)]
 mod test {
-
-    use quickcheck::quickcheck;
     use super::Queue;
 
     #[test]
@@ -78,12 +80,9 @@ mod test {
         assert_eq!(1u, q.get());
         assert_eq!(2u, q.get());
     }
-
-    #[test]
-    fn qc_prop_zero_size() {
-        fn prop_zero_size(sz: uint) -> bool {
-            Queue::<uint>::new(sz).size() == 0
-        }
-        quickcheck(prop_zero_size);
+    
+    #[quickcheck]
+    fn prop_zero_size(sz: uint) -> bool {
+        Queue::<uint>::new(sz).size() == 0
     }
 }
