@@ -1,12 +1,15 @@
 /*!
  * Example queue inspired by a Quviq demo
+ *
+ *  - http://www.quviq.com/demos/
+ *  - http://doc.rust-lang.org/src/collections/home/rustbuild/src/rust-buildbot/slave/nightly-linux/build/src/libcollections/vec.rs.html#105-109
  */
 
 // This could all reside in its own module 'queue.rs'
 pub struct Queue<T> {
     inp: uint,
     outp: uint,
-    buf: Vec<T>
+    buf: Vec<T> // change to *mut T
 }
 
 impl<T> Queue<T> {
