@@ -18,6 +18,7 @@ use core::mem;
 use core::ptr;
 
 // This could all reside in its own module 'queue.rs'
+#[deriving(Clone,Show)]
 pub struct Queue<T> {
     inp: uint,
     outp: uint,
@@ -60,6 +61,8 @@ impl<T> Queue<T> {
 #[cfg(test)]
 mod test {
     use super::Queue;
+    use quickcheck::TestResult;
+    use quickcheck::{Gen,Arbitrary};
 
     #[test]
     fn queue_size() {
@@ -81,8 +84,24 @@ mod test {
         assert_eq!(2u, q.get());
     }
     
+    impl Arbitrary for Queue<uint> {
+        fn arbitrary<G: Gen>(g: &mut G) -> Queue<uint> {
+            Queue::new(g.size())
+        }
+    }
+
     #[quickcheck]
-    fn prop_zero_size(sz: uint) -> bool {
-        Queue::<uint>::new(sz).size() == 0
+    fn prop_put_one(mut q: Queue<uint>) -> bool {
+        q.put(1u);
+        q.size() == 1
+    }
+
+    #[quickcheck]
+    fn prop_zero_size(sz: uint) -> TestResult {
+        if sz == 0 {
+            TestResult::discard()
+        } else {
+            TestResult::from_bool(Queue::<uint>::new(sz).size() == 0)
+        }
     }
 }
