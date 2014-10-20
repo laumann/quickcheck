@@ -29,10 +29,10 @@ pub struct Queue<T> {
 impl<T> Queue<T> {
     pub fn new(size: uint) -> Queue<T> {
         assert!(size > 0);
-        let sz = size.checked_mul(&mem::size_of::<T>())
-                     .expect("capacity overflow");
+        let sz = (size + 1).checked_mul(&mem::size_of::<T>())
+                           .expect("capacity overflow");
         let buf = unsafe { allocate(sz, mem::min_align_of::<T>()) };
-        Queue{inp: 0, outp: 0, size: size, buf: buf as *mut T}
+        Queue{inp: 0, outp: 0, size: size + 1, buf: buf as *mut T}
     }
 
     pub fn put(&mut self, v: T) {
@@ -89,15 +89,19 @@ mod test {
     
     impl<T: Send + Clone + 'static> Arbitrary for Queue<T> {
         fn arbitrary<G: Gen>(g: &mut G) -> Queue<T> {
-            let s = g.size();
+            let s = g.gen_range::<uint>(1,50);
             Queue::<T>::new(s)
         }
     }
 
     #[quickcheck]
-    fn prop_put_one(mut q: Queue<uint>) -> bool {
+    fn prop_put_one(mut q: Queue<uint>) -> TestResult {
         q.put(1u);
-        q.size() == 1
+        if q.size() == 1 {
+            TestResult::passed()
+        } else {
+            TestResult::error(format!("Expected '1', but got '{}'", q.size()).as_slice())
+        }
     }
 
     #[quickcheck]
@@ -142,8 +146,9 @@ mod test {
                 match act {
                     Put if sz < s => { actions.push(Put); sz += 1 },
                     Get if sz > 0 => { actions.push(Get); sz -= 1 },
-                    Size          => actions.push(Size),
-                    _ => {}
+                    Size => actions.push(Size),
+                    Put  => { actions.push(Get); sz -= 1 },
+                    Get  => { actions.push(Put); sz += 1 },
                 }
             }
 
@@ -152,6 +157,7 @@ mod test {
                 actions: actions
             }
         }
+
     }
 
     #[quickcheck]
@@ -164,9 +170,7 @@ mod test {
                     size += 1;
                 },
                 Get => {
-                    if qtc.q.get() != 9 {
-                        return false
-                    }
+                    qtc.q.get();
                     size -= 1;
                 },
                 Size => if qtc.q.size() != size {
