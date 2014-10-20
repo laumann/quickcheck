@@ -61,6 +61,9 @@ impl<T> Queue<T> {
 #[cfg(test)]
 mod test {
     use super::Queue;
+
+    use std::rand::{Rand,Rng};
+
     use quickcheck::TestResult;
     use quickcheck::{Gen,Arbitrary};
 
@@ -86,7 +89,8 @@ mod test {
     
     impl<T: Send + Clone + 'static> Arbitrary for Queue<T> {
         fn arbitrary<G: Gen>(g: &mut G) -> Queue<T> {
-            Queue::<T>::new(g.size())
+            let s = g.size();
+            Queue::<T>::new(s)
         }
     }
 
@@ -105,14 +109,71 @@ mod test {
         }
     }
 
-    enum Action {
-        Put,
-        Get,
-        Size
+    /*
+     * We want to be able to generate a random, but valid sequence of Action's.
+     *
+     *  - Put can only be generated if the Queue is not full
+     *  - Get can only be generated if the Queue is not empty
+     *  - Size can _always_ be generated
+     */
+    #[deriving(Clone, Show)]
+    enum Action { Put, Get, Size }
+
+    impl Rand for Action {
+        fn rand<R: Rng>(rng: &mut R) -> Action {
+            *rng.choose([Put, Get, Size]).unwrap()
+        }
     }
 
-    struct QueueConfig<T> {
+    #[deriving(Clone, Show)]
+    struct QueueTestConfig<T> {
         q: Queue<T>,
         actions: Vec<Action>
+    }
+
+    impl<T> Arbitrary for QueueTestConfig<T> where T: Send + Clone + 'static {
+        fn arbitrary<G: Gen>(g: &mut G) -> QueueTestConfig<T> {
+            let s = g.gen_range::<uint>(1, 50);
+            let n = g.gen_range::<uint>(1, 1000);
+
+            let mut actions = Vec::with_capacity(n);
+            let mut sz = 0;
+            for act in g.gen_iter::<Action>().take(n) {
+                match act {
+                    Put if sz < s => { actions.push(Put); sz += 1 },
+                    Get if sz > 0 => { actions.push(Get); sz -= 1 },
+                    Size          => actions.push(Size),
+                    _ => {}
+                }
+            }
+
+            QueueTestConfig{
+                q: Queue::new(s),
+                actions: actions
+            }
+        }
+    }
+
+    #[quickcheck]
+    fn prop_queue_actions(mut qtc: QueueTestConfig<uint>) -> bool {
+        let mut size = 0;
+        for &act in qtc.actions.iter() {
+            match act {
+                Put => {
+                    qtc.q.put(9);
+                    size += 1;
+                },
+                Get => {
+                    if qtc.q.get() != 9 {
+                        return false
+                    }
+                    size -= 1;
+                },
+                Size => if qtc.q.size() != size {
+                    return false
+                }
+            }
+        }
+        true
     }
 }
